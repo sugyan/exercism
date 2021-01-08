@@ -8,11 +8,9 @@ pub struct Clock {
 
 impl Clock {
     pub fn new(hours: i32, minutes: i32) -> Self {
-        let h = hours + minutes / 60 - if minutes % 60 < 0 { 1 } else { 0 };
-        let m = minutes % 60;
         Self {
-            hours: (h % 24 + 24) % 24,
-            minutes: (m % 60 + 60) % 60,
+            hours: (hours + minutes.div_euclid(60)).rem_euclid(24),
+            minutes: minutes.rem_euclid(60),
         }
     }
 
