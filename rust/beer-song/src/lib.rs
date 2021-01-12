@@ -38,7 +38,9 @@ pub fn verse(n: u32) -> String {
 }
 
 pub fn sing(start: u32, end: u32) -> String {
-    let mut ret = Vec::new();
-    (end..=start).rev().for_each(|n| ret.push(verse(n)));
-    ret.join("\n")
+    (end..=start)
+        .rev()
+        .map(verse)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
