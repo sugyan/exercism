@@ -9,14 +9,12 @@ pub enum Comparison {
 pub fn sublist<T: PartialEq>(first_list: &[T], second_list: &[T]) -> Comparison {
     match first_list.len().cmp(&second_list.len()) {
         std::cmp::Ordering::Less => {
-            for i in 0..=second_list.len() - first_list.len() {
-                if first_list
-                    .iter()
-                    .enumerate()
-                    .all(|(j, t)| *t == second_list[i + j])
-                {
-                    return Comparison::Sublist;
-                }
+            if first_list.is_empty()
+                || second_list
+                    .windows(first_list.len())
+                    .any(|l| l == first_list)
+            {
+                return Comparison::Sublist;
             }
         }
         std::cmp::Ordering::Equal => {
