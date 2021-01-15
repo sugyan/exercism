@@ -12,7 +12,7 @@ pub fn sublist<T: PartialEq>(first_list: &[T], second_list: &[T]) -> Comparison 
             if first_list.is_empty()
                 || second_list
                     .windows(first_list.len())
-                    .any(|l| l == first_list)
+                    .any(|w| w[0] == first_list[0] && w[1..] == first_list[1..])
             {
                 return Comparison::Sublist;
             }
