@@ -10,19 +10,16 @@ const ADJACENT: [(i32, i32); 8] = [
 ];
 
 pub fn annotate(minefield: &[&str]) -> Vec<String> {
-    let minefield = minefield
-        .iter()
-        .map(|&row| row.chars().collect::<Vec<_>>())
-        .collect::<Vec<_>>();
     minefield
         .iter()
         .enumerate()
-        .map(|(i, row)| {
-            row.iter()
+        .map(|(i, &row)| {
+            row.as_bytes()
+                .iter()
                 .enumerate()
                 .map(|(j, &c)| {
-                    if c == '*' {
-                        c
+                    if c == b'*' {
+                        c as char
                     } else {
                         let count = ADJACENT
                             .iter()
@@ -31,7 +28,7 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
                                 let j = j as i32 + *dj;
                                 (0..minefield.len() as i32).contains(&i)
                                     && (0..row.len() as i32).contains(&j)
-                                    && minefield[i as usize][j as usize] == '*'
+                                    && minefield[i as usize].as_bytes()[j as usize] == b'*'
                             })
                             .count() as u8;
                         if count == 0 {
