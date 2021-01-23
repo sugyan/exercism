@@ -1,32 +1,19 @@
 use std::iter::FromIterator;
 
+#[derive(Default)]
 pub struct SimpleLinkedList<T> {
     head: Option<Box<ListNode<T>>>,
+    len: usize,
 }
 
-#[derive(Default)]
 struct ListNode<T> {
-    value: T,
+    data: T,
     next: Option<Box<ListNode<T>>>,
 }
 
-impl<T> ListNode<T> {
-    fn new(value: T) -> Self {
-        Self { value, next: None }
-    }
-}
-
-impl<T: Default> Default for SimpleLinkedList<T> {
-    fn default() -> Self {
-        Self {
-            head: Some(Box::new(ListNode::default())),
-        }
-    }
-}
-
-impl<T: Copy + Default> SimpleLinkedList<T> {
+impl<T: Copy> SimpleLinkedList<T> {
     pub fn new() -> Self {
-        Default::default()
+        Self { head: None, len: 0 }
     }
 
     // You may be wondering why it's necessary to have is_empty()
@@ -35,58 +22,35 @@ impl<T: Copy + Default> SimpleLinkedList<T> {
     // whereas is_empty() is almost always cheap.
     // (Also ask yourself whether len() is expensive for SimpleLinkedList)
     pub fn is_empty(&self) -> bool {
-        self.head.as_ref().unwrap().next.is_none()
+        self.len == 0
     }
 
     pub fn len(&self) -> usize {
-        let mut len = 0;
-        let mut node = &self.head;
-        while let Some(n) = node {
-            node = &n.next;
-            len += 1;
-        }
-        len - 1
+        self.len
     }
 
     pub fn push(&mut self, element: T) {
-        let mut node = &mut self.head;
-        while let Some(n) = node {
-            if n.next.is_none() {
-                return n.next = Some(Box::new(ListNode::new(element)));
-            }
-            node = &mut n.next;
-        }
+        self.head = Some(Box::new(ListNode {
+            data: element,
+            next: self.head.take(),
+        }));
+        self.len += 1;
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        let mut node = &mut self.head;
-        while let Some(n) = node {
-            if n.next.is_some() {
-                if let Some(next) = n.next.as_ref() {
-                    if next.next.is_none() {
-                        let value = next.value;
-                        n.next = None;
-                        return Some(value);
-                    }
-                }
-            }
-            node = &mut n.next;
+        if let Some(n) = self.head.take() {
+            self.head = n.next;
+            self.len -= 1;
+            return Some(n.data);
         }
         None
     }
 
     pub fn peek(&self) -> Option<&T> {
-        if self.is_empty() {
-            return None;
+        if let Some(n) = self.head.as_ref() {
+            return Some(&n.data);
         }
-        let mut node = &self.head;
-        while let Some(n) = node {
-            if n.next.is_none() {
-                return Some(&n.value);
-            }
-            node = &n.next;
-        }
-        unreachable!()
+        None
     }
 
     pub fn rev(self) -> SimpleLinkedList<T> {
@@ -95,7 +59,7 @@ impl<T: Copy + Default> SimpleLinkedList<T> {
     }
 }
 
-impl<T: Copy + Default> FromIterator<T> for SimpleLinkedList<T> {
+impl<T: Copy> FromIterator<T> for SimpleLinkedList<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut list = Self::new();
         for item in iter.into_iter() {
@@ -119,11 +83,12 @@ impl<T: Copy + Default> FromIterator<T> for SimpleLinkedList<T> {
 impl<T: Copy> Into<Vec<T>> for SimpleLinkedList<T> {
     fn into(self) -> Vec<T> {
         let mut vec = Vec::new();
-        let mut node = &self.head.unwrap().next;
+        let mut node = &self.head;
         while let Some(n) = node {
-            vec.push(n.value);
+            vec.push(n.data);
             node = &n.next;
         }
+        vec.reverse();
         vec
     }
 }
