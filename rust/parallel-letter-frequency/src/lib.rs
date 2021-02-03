@@ -2,9 +2,8 @@ use std::collections::HashMap;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
-type Job = Box<dyn FnOnce() + Send + 'static>;
+type Job = Box<dyn FnOnce() -> Option<()> + Send + 'static>;
 
-#[allow(dead_code)]
 struct ThreadPool {
     workers: Vec<Worker>,
     sender: mpsc::Sender<Job>,
@@ -22,9 +21,14 @@ impl ThreadPool {
     }
     fn execute<F>(&self, f: F)
     where
-        F: FnOnce() + Send + 'static,
+        F: FnOnce() -> Option<()> + Send + 'static,
     {
         self.sender.send(Box::new(f)).ok();
+    }
+    fn terminate(&self) {
+        for _ in 0..self.workers.len() {
+            self.sender.send(Box::new(|| None)).ok();
+        }
     }
 }
 
@@ -39,7 +43,9 @@ impl Worker {
         let thread = thread::spawn(move || loop {
             if let Ok(r) = receiver.lock() {
                 if let Ok(job) = r.recv() {
-                    job();
+                    if job().is_none() {
+                        break;
+                    }
                 }
             }
         });
@@ -48,7 +54,6 @@ impl Worker {
 }
 
 pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
-    let len = input.len();
     let (tx, rx) = mpsc::channel();
     let pool = ThreadPool::new(worker_count);
     for s in input {
@@ -61,17 +66,17 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
                     *hm.entry(c).or_insert(0) += 1;
                 }
             }
-            sender.send(hm).ok();
+            sender.send(hm).ok()
         });
     }
+    pool.terminate();
+    drop(tx);
+
     let mut ret = HashMap::new();
-    for (i, received) in rx.iter().enumerate() {
+    for received in rx.iter() {
         for (k, v) in received {
             *ret.entry(k).or_insert(0) += v;
         }
-        if i == len - 1 {
-            return ret;
-        }
     }
-    unreachable!();
+    ret
 }
