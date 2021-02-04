@@ -2,11 +2,14 @@ use std::collections::HashMap;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
-type Job = Box<dyn FnOnce() -> Option<()> + Send + 'static>;
+enum Message {
+    Job(Box<dyn FnOnce() + Send + 'static>),
+    Terminate,
+}
 
 struct ThreadPool {
     workers: Vec<Worker>,
-    sender: mpsc::Sender<Job>,
+    sender: mpsc::Sender<Message>,
 }
 
 impl ThreadPool {
@@ -21,13 +24,17 @@ impl ThreadPool {
     }
     fn execute<F>(&self, f: F)
     where
-        F: FnOnce() -> Option<()> + Send + 'static,
+        F: FnOnce() + Send + 'static,
     {
-        self.sender.send(Box::new(f)).ok();
+        self.sender
+            .send(Message::Job(Box::new(f)))
+            .expect("Failed to send job")
     }
     fn terminate(&self) {
         for _ in 0..self.workers.len() {
-            self.sender.send(Box::new(|| None)).ok();
+            self.sender
+                .send(Message::Terminate)
+                .expect("Failed to send terminate")
         }
     }
 }
@@ -39,12 +46,13 @@ struct Worker {
 }
 
 impl Worker {
-    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Self {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         let thread = thread::spawn(move || loop {
             if let Ok(r) = receiver.lock() {
-                if let Ok(job) = r.recv() {
-                    if job().is_none() {
-                        break;
+                if let Ok(message) = r.recv() {
+                    match message {
+                        Message::Job(job) => job(),
+                        Message::Terminate => break,
                     }
                 }
             }
@@ -56,7 +64,7 @@ impl Worker {
 pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
     let (tx, rx) = mpsc::channel();
     let pool = ThreadPool::new(worker_count);
-    for s in input {
+    for &s in input {
         let s = s.to_string();
         let sender = mpsc::Sender::clone(&tx);
         pool.execute(move || {
@@ -66,14 +74,14 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
                     *hm.entry(c).or_insert(0) += 1;
                 }
             }
-            sender.send(hm).ok()
+            sender.send(hm).expect("Failed to send results of job")
         });
     }
     pool.terminate();
     drop(tx);
 
     let mut ret = HashMap::new();
-    for received in rx.iter() {
+    for received in rx {
         for (k, v) in received {
             *ret.entry(k).or_insert(0) += v;
         }
