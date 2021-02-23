@@ -1,39 +1,43 @@
-use std::fmt::Write as FmtWrite;
+use std::fmt::{Display, Formatter, Result};
 
-fn bottle_numeral(n: u32, capitalize: bool) -> String {
-    match n {
-        0 if capitalize => String::from("No more bottles"),
-        0 => String::from("no more bottles"),
-        1 => String::from("1 bottle"),
-        n => format!("{} bottles", n),
+struct Bottles {
+    n: u32,
+    capitalize: bool,
+}
+
+impl Bottles {
+    fn new(n: u32, capitalize: bool) -> Self {
+        Self { n, capitalize }
+    }
+}
+
+impl Display for Bottles {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self.n {
+            0 if self.capitalize => write!(f, "No more bottles"),
+            0 => write!(f, "no more bottles"),
+            1 => write!(f, "1 bottle"),
+            n => write!(f, "{} bottles", n),
+        }
     }
 }
 
 pub fn verse(n: u32) -> String {
-    let mut ret = String::new();
-    writeln!(
-        &mut ret,
-        "{} of beer on the wall, {} of beer.",
-        bottle_numeral(n, true),
-        bottle_numeral(n, false)
-    )
-    .ok();
+    let mut ret = format!(
+        "{} of beer on the wall, {} of beer.\n",
+        Bottles::new(n, true),
+        Bottles::new(n, false)
+    );
     match n {
-        0 => writeln!(
-            &mut ret,
-            "Go to the store and buy some more, 99 bottles of beer on the wall."
-        ),
-        1 => writeln!(
-            &mut ret,
-            "Take it down and pass it around, no more bottles of beer on the wall."
-        ),
-        n => writeln!(
-            &mut ret,
-            "Take one down and pass it around, {} of beer on the wall.",
-            bottle_numeral(n - 1, false)
-        ),
-    }
-    .ok();
+        0 => ret += "Go to the store and buy some more, 99 bottles of beer on the wall.\n",
+        1 => ret += "Take it down and pass it around, no more bottles of beer on the wall.\n",
+        n => {
+            ret += &format!(
+                "Take one down and pass it around, {} of beer on the wall.\n",
+                Bottles::new(n - 1, false)
+            )
+        }
+    };
     ret
 }
 
