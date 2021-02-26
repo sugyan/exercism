@@ -1,14 +1,16 @@
 use std::iter::FromIterator;
 
+type Node<T> = Option<Box<ListNode<T>>>;
+
 #[derive(Default)]
 pub struct SimpleLinkedList<T> {
-    head: Option<Box<ListNode<T>>>,
+    head: Node<T>,
     len: usize,
 }
 
 struct ListNode<T> {
     data: T,
-    next: Option<Box<ListNode<T>>>,
+    next: Node<T>,
 }
 
 impl<T: Copy> SimpleLinkedList<T> {
