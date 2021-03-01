@@ -1,0 +1,32 @@
+use std::cmp::Reverse;
+
+pub struct HighScores<'a> {
+    scores: &'a [u32],
+}
+
+impl<'a> HighScores<'a> {
+    pub fn new(scores: &'a [u32]) -> Self {
+        Self { scores }
+    }
+
+    pub fn scores(&self) -> &[u32] {
+        self.scores
+    }
+
+    pub fn latest(&self) -> Option<u32> {
+        self.scores().last().copied()
+    }
+
+    pub fn personal_best(&self) -> Option<u32> {
+        self.scores.iter().max().copied()
+    }
+
+    pub fn personal_top_three(&self) -> Vec<u32> {
+        let mut v = self.scores.iter().map(|&u| Reverse(u)).collect::<Vec<_>>();
+        v.sort_unstable();
+        v[..std::cmp::min(v.len(), 3)]
+            .iter()
+            .map(|&Reverse(u)| u)
+            .collect()
+    }
+}
