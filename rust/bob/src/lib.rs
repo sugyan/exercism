@@ -1,13 +1,13 @@
 pub fn reply(message: &str) -> &str {
-    if message.trim().is_empty() {
-        return "Fine. Be that way!";
+    match message.trim() {
+        m if m.is_empty() => "Fine. Be that way!",
+        m if m.ends_with('?') && is_yell(m) => "Calm down, I know what I'm doing!",
+        m if m.ends_with('?') => "Sure.",
+        m if is_yell(m) => "Whoa, chill out!",
+        _ => "Whatever.",
     }
-    let is_question = message.trim().ends_with('?');
-    let is_yell = message.chars().any(char::is_alphabetic) && message.to_uppercase() == message;
-    match (is_question, is_yell) {
-        (false, false) => "Whatever.",
-        (false, true) => "Whoa, chill out!",
-        (true, false) => "Sure.",
-        (true, true) => "Calm down, I know what I'm doing!",
-    }
+}
+
+fn is_yell(message: &str) -> bool {
+    message.chars().any(char::is_alphabetic) && message.to_ascii_uppercase() == message
 }
